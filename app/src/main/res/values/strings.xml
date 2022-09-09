@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">CounterTa</string>
+    <string name="fare">Fare %s</string>
+</resources>
