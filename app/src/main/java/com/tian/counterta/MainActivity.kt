@@ -8,6 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import androidx.activity.viewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.tian.counterta.data.TotalTrip
 import com.tian.counterta.data.TripDatabase
@@ -25,19 +28,21 @@ import kotlin.properties.Delegates
 
 class MainActivity : AppCompatActivity() {
     private val binding by viewBinding(ActivityMainBinding::inflate)
-    private val viewModel by obtainViewModel(TripViewModel::class)
+    lateinit var viewModel : TripViewModel
     private lateinit var dialogPinBinding: DialogPinBinding
     private lateinit var dialog : Dialog
 
-    lateinit var db: TripDatabase
+//    lateinit var db: TripDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        viewModel = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory.getInstance(application)).get(TripViewModel::class.java)
+
         Pref.init(this)
         Pref.setInt(FARE_TRANSACTION, 2500)
 
         onView()
-        setupDB()
+//        setupDB()
     }
 
 
@@ -55,7 +60,8 @@ class MainActivity : AppCompatActivity() {
     }
     @SuppressLint("SetTextI18n")
     private fun tapThreeTripFree(cardNumber : String) = binding.run {
-
+        viewModel.checkExistsNumberCard(cardNumber)
+        viewModel.getTripById(cardNumber)
 
         // ON READ
         tripPayment++
@@ -71,22 +77,23 @@ class MainActivity : AppCompatActivity() {
 
 
         // ON RESULT
-
-            val checkExistsNumberCard = viewModel.checkExistsNumberCard(cardNumber)
-            trip = if(!checkExistsNumberCard){
+        viewModel._checkExistsNumberCard.observe(this@MainActivity, Observer { checkExistsNumberCard->
+            if(checkExistsNumberCard){
                 tripPayment = 1
-                1
+                trip = 1
             } else {
-                val getTrip =  db.tripDao().getTripById(cardNumber)
-
-                Log.e("TAG", "initData: getTrip ${getTrip.toInt() + 1} ", )
-                getTrip.toInt() + 1
+                viewModel._getTripById.observe(this@MainActivity, Observer {getTrip->
+                    Log.e("TAG", "initData: getTrip ${getTrip.toInt() + 1} ", )
+                    trip = getTrip.toInt() + 1
+                })
             }
 
             val tripData = TotalTrip(cardNumber, trip.toString())
             viewModel.insert(tripData)
 
             Log.e("TAG", "initData: trip $trip | $checkExistsNumberCard ", )
+
+        })
 
 
 
@@ -142,13 +149,13 @@ class MainActivity : AppCompatActivity() {
 //    }
 
 
-    private fun setupDB() {
-        db = Room.databaseBuilder(applicationContext, TripDatabase::class.java, "trip-db").build()
-        CoroutineScope(Dispatchers.IO).launch {
-            db.tripDao().deleteAllTrip()
-            Log.e("TAG", "initData: DELETETRIP", )
-        }
-    }
+//    private fun setupDB() {
+//        db = Room.databaseBuilder(applicationContext, TripDatabase::class.java, "trip-db").build()
+//        CoroutineScope(Dispatchers.IO).launch {
+//            db.tripDao().deleteAllTrip()
+//            Log.e("TAG", "initData: DELETETRIP", )
+//        }
+//    }
 
     private fun updateFare() = binding.run {
         tvFare.text = getString(R.string.fare, " ${Pref.getInt(FARE_TRANSACTION).toFormatRupiah()}")
@@ -169,10 +176,10 @@ class MainActivity : AppCompatActivity() {
                 binding.tvFare.text = getString(R.string.fare, " ${Pref.getInt(FARE_TRANSACTION).toFormatRupiah()}")
                 trip = 1
                 tvTitleTrip.text = ""
-                CoroutineScope(Dispatchers.IO).launch {
-                    db.tripDao().deleteAllTrip()
-                    Log.e("TAG", "initData: DELETETRIP", )
-                }
+//                CoroutineScope(Dispatchers.IO).launch {
+//                    db.tripDao().deleteAllTrip()
+//                    Log.e("TAG", "initData: DELETETRIP", )
+//                }
                 dialog.dismiss()
 //                } else if (getFare.isEmpty()) showToast("PIN Belum Terisi")
 

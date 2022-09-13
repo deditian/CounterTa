@@ -1,5 +1,6 @@
 package com.tian.counterta.data
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.tian.counterta.data.TotalTrip
 
@@ -10,7 +11,7 @@ interface TotalTripDao {
     fun getTripById(numberCard : String) : String
 
     @Query("SELECT * FROM TotalTrip")
-    fun getAllTrip() : List<TotalTrip>
+    fun getAllTrip() : LiveData<List<TotalTrip>>
 
     @Query("SELECT EXISTS(SELECT * FROM TotalTrip WHERE number_card=(:numberCard))")
     fun checkExistsNumberCard(numberCard: String): Boolean
